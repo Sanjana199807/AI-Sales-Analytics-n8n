@@ -1,0 +1,489 @@
+{
+  "name": "Business Intelligence Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e127c0b2-c98c-4239-98c3-b13efa9e51dd",
+      "name": "When chat message received",
+      "webhookId": "ad5af9a4-9d1c-44ed-bb4b-b6ad08bf811b"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        96,
+        208
+      ],
+      "id": "c72c0940-3d03-4d72-9a2b-e4012c452300",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bVDMWhNX4NOpG22b",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n \"sql\": \"SELECT * FROM sales_data LIMIT 5;\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        208
+      ],
+      "id": "46f5860e-041e-40b8-a237-3d8a7729816e",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a helpful assistant. You have access to PostgreSQL Tool to execute SQL \nqueries and provide the response. \nFor the below User request, first retrieve the data from Database, then analyze it \nand generate response. The amounts are in INR. \nUser request: \n{{$node[\"When chat message received\"].json[\"chatInput\"]}}\nSQL query:  \n{{$json.sql}}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        560,
+        0
+      ],
+      "id": "a284de75-59a1-4322-ad0e-06337b4d4267",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        256
+      ],
+      "id": "42cd568e-2027-4058-8c3b-d1fccd3d0e49",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bVDMWhNX4NOpG22b",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.output.sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        208
+      ],
+      "id": "2d8b5707-febd-4b2c-a05b-3f2a8f1ca2c8",
+      "name": "Execute a SQL query in Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "3oUPVyjeXluRypRt",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        848,
+        208
+      ],
+      "id": "9bd1bdc2-7c51-454a-b6ae-c1af643bcf29",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bVDMWhNX4NOpG22b",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "084ee345-f1f2-408a-ae92-8b69111cf77c",
+              "leftValue": "={{ $('Basic LLM Chain (Chart Reqd)').item.json.text }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "eba34cf9-071d-47e7-913d-9ddbfc41cf21",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a PostgreSQL Expert. Convert the user's question into an optimized SQL query.\n\nThe sales data is stored in a PostgreSQL table called `sales_data` with the following columns and meanings:\n\nrow_id (INTEGER) – unique identifier for each row\nproduct_id (INTEGER) – unique identifier for each product\nsale_date (DATE) – date on which the sale occurred\nsales_rep (TEXT) – name of the sales representative\nregion (TEXT) – geographic region (North, South, East, West)\nsales_amount (NUMERIC) – total revenue generated from the sale\nquantity_sold (INTEGER) – number of units sold\nproduct_category (TEXT) – category of the product (Furniture, Electronics, Food, Clothing)\nunit_cost (NUMERIC) – cost per unit of the product\nunit_price (NUMERIC) – selling price per unit\ncustomer_Type (TEXT) – New or Returning customer\ndiscount (NUMERIC) – discount applied on the sale\npayment_Method (TEXT) – Cash, Credit Card, Bank Transfer\nsales_channel (TEXT) – Online or Retail\nregion_and_sales_rep (TEXT)\n\nUser Question:\n{{$json[\"chatInput\"]}}\n\nReturn only a valid SQL query in below json format, no explanation:\n\n{\n\"sql\": \"SELECT * FROM sales_data LIMIT 5;\"\n}\nSQL Generation Rules:\n\n1. If the user asks for comparisons across categories (e.g., region, product category, customer type, sales rep), include those columns in the SELECT clause.\n\n2. When multiple categories are involved, include all relevant fields in the GROUP BY clause.\n\n3. If the user mentions phrases like:\n   - \"across regions\"\n   - \"by region\"\n   - \"per region\"\n   - \"across categories\"\n\n   then include the region column in both SELECT and GROUP BY.\n\n4. Always ensure the query returns enough data for meaningful comparison or visualization.",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0da9526a-dde6-49c4-8a56-48ba531b170d",
+      "name": "Basic LLM Chain (Generate SQL)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an intelligent analytics assistant.\n\nYour task is to decide whether a user’s request requires:\n- A visual chart (bar, line, pie, etc.)\n- OR a text-only explanation.\n\nImportant rules:\n- Do NOT generate the chart or explanation.\n- Only classify the intent.\n- If the request compares categories, trends, distributions, or grouped results → YES.\n- If the request asks for a single value → NO.\n\nOutput format:\nReturn exactly one word:\n\nYES\nor\nNO\n\nUser request:\n{{ $('When chat message received').item.json.chatInput }}\n\nSQL query:\n{{ $('Basic LLM Chain (Generate SQL)').item.json.output.sql }}\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        912,
+        0
+      ],
+      "id": "12c19e45-bd4c-4b5c-8073-e895b2745ca3",
+      "name": "Basic LLM Chain (Chart Reqd)"
+    },
+    {
+      "parameters": {
+        "message": "={{$node[\"AI Agent\"].json[\"output\"]}}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        96
+      ],
+      "id": "e115ddc0-519e-4c9d-9912-d3659ca0e164",
+      "name": "Respond to chat",
+      "webhookId": "0ce34893-2404-42dd-b8c1-22254028127d"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a system that ONLY outputs valid JSON. Never output explanations, sentences, or markdown.\n\nYour job is to analyze the SQL query results and produce the exact structured chart configuration needed for the QuickChart node.\n\nINPUTS PROVIDED TO YOU:\n\n1. User query\n{{ $('When chat message received').item.json.chatInput }}\n\n2. insight_summary\nInsights:\n{{ $('AI Agent').item.json.output }}\n\nYOUR TASK:\n\nBased on the structure and meaning of the SQL results, generate the following outputs:\n\n1. chart_title → A clear title summarizing what the chart represents.\n2. chart_type → One of: \"bar\", \"line\", \"pie\", \"doughnut\".\n3. labels_array → Extract the category labels (region, month, campaign, etc.).\n4. dataset_label → Name of the metric being visualized (example: \"Total Sales\", \"Revenue\", \"Customers\").\n5. data_array → Numeric values corresponding to the labels.\n6. explanation → A brief 2–3 line explanation of why this chart type fits the data.\n\nRULES:\n- Always match labels_array with data_array.\n- Never invent values.\n- Use only values present in the SQL results or insight summary.\n- Choose the chart type based on the data structure.\n\nReturn ONLY valid JSON in this schema:\n\n{\n\"chart_title\": \"\",\n\"chart_type\": \"\",\n\"labels_array\": [],\n\"dataset_label\": \"\",\n\"data_array\": [],\n\"explanation\": \"\"\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1472,
+        -16
+      ],
+      "id": "902d67cc-e777-4d93-98c2-efa1501979ab",
+      "name": "Basic LLM Chain (Chart Configuration Generator)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        192
+      ],
+      "id": "2a2effed-ae4a-4bb8-95d6-e5fd107296da",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bVDMWhNX4NOpG22b",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a QuickChart URL Generator.\n\nYou will be given a Structured Chart Configuration in JSON-like format.\n\nYour task is to convert that configuration into a valid QuickChart endpoint URL of the form:\n\nhttps://quickchart.io/chart?c={...}\n\nRULES:\n1. Use the structure exactly as provided in the input configuration.\n2. The final chart object must follow QuickChart URL syntax:\n\n{\ntype: '<chart_type>',\ndata: {\nlabels: [...],\ndatasets: [...]\n},\noptions: {...}\n}\n\n3. Do NOT add new fields that are not present.\n4. Do NOT remove fields.\n5. Preserve all labels, datasets, values, chart types, colors, and options exactly.\n6. The output must be a single valid URL, not code blocks.\n7. Do NOT URL-encode the characters. Output in readable form like in the examples.\n\nINPUT FORMAT:\n<Structured chart configuration will come here>\n\nOUTPUT FORMAT:\nA single QuickChart URL, e.g.:\n\nhttps://quickchart.io/chart?c={type:'bar',data:{labels:['North','South'],datasets:[{label:'Revenue',data:[100,200]}]}}\n\nREFERENCE EXAMPLES:\n\nBar Chart:\nhttps://quickchart.io/chart?c={type:'bar',data:{labels:['January','February','March','April','May'],datasets:[{label:'Dogs',data:[50,60,70,180,190]},{label:'Cats',data:[100,200,300,400,500]}]}}\n\nLine Chart:\nhttps://quickchart.io/chart?c={type:'line',data:{labels:['January','February','March','April','May'],datasets:[{label:'Dogs',data:[50,60,70,180,190],fill:false,borderColor:'blue'},{label:'Cats',data:[100,200,300,400,500],fill:false,borderColor:'green'}]}}\n\nPie Chart:\nhttps://quickchart.io/chart?c={type:'pie',data:{labels:['January','February','March','April','May'],datasets:[{data:[50,60,70,180,190]}]}}\n\nScatter Chart:\nhttps://quickchart.io/chart?c={type:'scatter',data:{datasets:[{label:'Data1',data:[{x:2,y:4},{x:3,y:3},{x:-10,y:0},{x:0,y:10},{x:10,y:5}]}]}}\n\nDoughnut Chart:\nhttps://quickchart.io/chart?c={type:'doughnut',data:{labels:['January','February','March','April','May'],datasets:[{data:[50,60,70,180,190]}]},options:{plugins:{doughnutlabel:{labels:[{text:'550',font:{size:20}},{text:'total'}]}}}}\n\nNow generate the correct QuickChart URL.\n\nINPUT Structured chart configuration:\n{{ $('Basic LLM Chain (Chart Configuration Generator)').item.json.text }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1728,
+        -16
+      ],
+      "id": "f869d5f9-4974-4f36-b4e3-e2517579cc06",
+      "name": "Basic LLM Chain (Chart URL)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        192
+      ],
+      "id": "96013111-aedd-4f0c-b857-d1bd4e681e10",
+      "name": "Google Gemini Chat Model4",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bVDMWhNX4NOpG22b",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfunction updateChartUrl(url) { \nlet updatedUrl = \"\"; \nfor (const ch of url) { \nif (ch === \"'\") { \nupdatedUrl += \"%27\"; \n} else if (ch === \" \") { \nupdatedUrl += \"%20\"; \n} else { \nupdatedUrl += ch; \n} \n}\n  return \"![chart](\" + updatedUrl + \")\"; \n} \nfor (const item of $input.all()) { \nconst updatedURL = updateChartUrl(item.json.text) \nitem.json.updatedChartUrl = updatedURL; \n} \nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        -16
+      ],
+      "id": "074e5cea-f4f3-4fc2-bd2e-86f1408f740b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "message": "=Chart Generated:\n\n{{ $('Code in JavaScript').item.json.updatedChartUrl }}\n\nAgent Response:\n\n{{ $('AI Agent').item.json.output }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1.3,
+      "position": [
+        2288,
+        -16
+      ],
+      "id": "311110e6-4660-4389-abc4-e3a0bb74c46f",
+      "name": "Chat",
+      "webhookId": "9501225e-2ccd-4d82-9f17-4bb607b946e8"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain (Generate SQL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain (Generate SQL)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain (Generate SQL)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query in Postgres": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain (Chart Reqd)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain (Chart Reqd)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain (Generate SQL)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain (Chart Reqd)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain (Chart Configuration Generator)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain (Chart Configuration Generator)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain (Chart Configuration Generator)": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain (Chart URL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain (Chart URL)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain (Chart URL)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "02f35d17-86eb-4f1d-ae65-5fcb9cafab69",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c427080c84a87ad22163ac207405b933f33e93d6720a0b37d478573dedbc637e"
+  },
+  "id": "oS1gP3gMZO14qIiy",
+  "tags": []
+}
